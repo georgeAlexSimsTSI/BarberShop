@@ -1,72 +1,86 @@
-// #include "../include/barberShop.h"
+#include "../include/barberShop.h"
 
-// BarberShop::BarberShop()
-// {
-//     open = true;
-// }
+BarberShop::BarberShop()
+{
+    static bool seeded = false; // seed the random number generator
+    if (!seeded)
+    {
+        srand(time(NULL));
+        seeded = true;
+    }
+}
 
-// void BarberShop::customer() // producer
-// {
-//     std::unique_lock<std::mutex> lock(mutexLock);
-//     std::string name = "Timmy";
-//     std::cout << "Customer: " << name << " has entered the shop " << std::endl;
+void BarberShop::barber(const std::string &name)
+{
+    while (open || customers.size() != 0)
+    {
+        std::unique_lock<std::mutex> lock(mu);
+        if (customers.size() == 0)
+        {
+            std::cout << "Barber " << name << " is having a nap " << std::endl;
+            freeBarbers++;
+            waitingCustomers.wait(lock);
+            std::cout << "Barber " << name << " has woken up " << std::endl;
+            freeBarbers--;
+        }
 
-//     if (waitingCustomers.size() >= numberOfSeats) // if no seats
-//     {
-//         std::cout << "Customer finds no available seats so they leave" << std::endl;
-//         return;
-//     }
+        if (customers.size() == 0)
+            continue;
 
-//     waitingCustomers.emplace(name); // add customer to queue
-//     std::cout << "Customer: " << name << " Takes a seat " << std::endl;
+        std::string customerName = customers.front();
+        std::cout << "Barber takes customer " << customerName << " to the chair" << std::endl;
+        customers.pop();
+        std::cout << "Barber " << name << " starts cutting hair " << std::endl;
+        lock.unlock();
+        std::this_thread::sleep_for(std::chrono::seconds(timeToCut));
+        lock.lock();
+        std::cout << "Barber " << name << " has finished cutting hair " << std::endl;
+        std::cout << customerName << " leaves" << std::endl;
+        hadHairCut.notify_one();
+        lock.unlock();
+    }
+}
 
-//     customersCondition.notify_one(); // notify any sleeping barbers that there is a customer
+void BarberShop::customer(const std::string &name) // producer
+{
+    std::unique_lock<std::mutex> lock(mu);
+    std::cout << "Customer " << name << " enters the barbers " << std::endl;
+    if (customers.size() >= numberOfSeats)
+    {
+        std::cout << " No free seats so customer " << name << " leaves " << std::endl;
+        return;
+    }
+    customers.push(name);
+    if (freeBarbers)
+        waitingCustomers.notify_one(); // if there is a free barber notify one of them
+    else
+        hadHairCut.wait(lock); // otherwise wait for a barber
+}
 
-//     availableBarberCondition.wait(lock); // wait for a active barber
-//     std::cout << "Customer: " << name << " Leaves " << std::endl;
-// }
+void BarberShop::run()
+{
+    std::vector<std::string> barberNames{"Steve", "Virgilio"};
+    std::vector<std::string> customerNames{"John", "Greg", "Pete", "Peter", "Oliver", "James", "Cody", "Jeeves", "Connor", "Guprit"};
+    std::vector<std::thread> barberThreads;
+    std::vector<std::thread> customerThreads;
 
-// void BarberShop::barber()
-// {
-//     std::unique_lock<std::mutex> lock(mutexLock);
-//     std::string name = "Tim";
-//     std::cout << "Barber: " << name << " has started working" << std::endl;
-//     lock.unlock();
-//     while (open) // while the shop is open
-//     {
-//         lock.lock(); // acquire a lock
+    for (int i = 0; i < 1; ++i)
+    {
+        barberThreads.emplace_back(std::thread(&BarberShop::barber, this, barberNames[rand() % barberNames.size()]));
+    }
 
-//         if (waitingCustomers.size() == 0)
-//         {
-//             std::cout << "Due to lack of customers Barber " << name << " is having a nap " << std::endl;
-//             customersCondition.wait(lock); // wait for a customer
-//         }
+    std::this_thread::sleep_for(std::chrono::seconds(3));
 
-//         std::string customerName = waitingCustomers.front();
-//         waitingCustomers.pop();
+    for (int i = 0; i < 20; ++i)
+    {
+        customerThreads.emplace_back(std::thread(&BarberShop::customer, this, customerNames[rand() % customerNames.size()]));
+        std::this_thread::sleep_for(std::chrono::seconds(rand() % 3));
+    }
 
-//         std::cout << "Barber: " << name << " is cutting Customer " << customerName << std::endl;
-//         std::this_thread::sleep_for(std::chrono::seconds(timeToCut));
-//         std::cout << "Barber: " << name << " has finished cutting hair " << std::endl;
-//         availableBarberCondition.notify_one();
-//         lock.unlock();
-//     }
-//     std::cout << "Barber thread: " << name << " has ended" << std::endl;
-// }
+    open = false;
+    for (auto &i : barberThreads)
+        i.join();
 
-// void BarberShop::run()
-// {
-//     // std::string barberNames[] = {"Jason"};
-//     // std::string customerNames[] = {"Tim", "Tom"};
-
-//     //std::thread barberThread(barber);
-
-//     // for (int i = 0; i < 10; ++i)
-//     // {
-//     //     std::thread customerThread1(customer, "Tim");
-//     //     customerThread1.detach();
-//     //     std::thread customerThread2(customer, "Tommy");
-//     //     customerThread2.detach();
-//     // }
-//     // open = false;
-// }
+    for (auto &i : customerThreads)
+        i.join();
+}
