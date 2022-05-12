@@ -3,7 +3,7 @@
 int main()
 {
     BarberShop shop;
-    int numberOfBarbers = 1, numberOfCustomers = 7;
+    int numberOfBarbers = 1, numberOfCustomers = 14;
     std::vector<std::string> names{
         "John",
         "Gregor",
@@ -56,6 +56,9 @@ int main()
         "Gabriel",
         "Carter",
         "Isaac"};
+
+    // std::thread barb = std::thread (&BarberShop::barber, &shop, "FAKE BARBER"); //how to create a thread in another class while outside of it
+
     shop.run(numberOfBarbers, numberOfCustomers, names);
     return 0;
 }
