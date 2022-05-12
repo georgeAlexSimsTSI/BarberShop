@@ -28,11 +28,11 @@ void BarberShop::barber(const std::string &name)
             continue;
 
         std::string customerName = customers.front();
-        std::cout << "Barber takes customer " << customerName << " to the chair" << std::endl;
+        std::cout << "Barber " << name << " takes customer " << customerName << " to the chair" << std::endl;
         customers.pop();
         std::cout << "Barber " << name << " starts cutting hair " << std::endl;
         lock.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds(timeToCut));
+        std::this_thread::sleep_for(std::chrono::seconds((rand() % (timeToCutMax-timeToCutMin))+timeToCutMin));
         lock.lock();
         std::cout << "Barber " << name << " has finished cutting hair " << std::endl;
         std::cout << customerName << " leaves" << std::endl;
@@ -59,22 +59,23 @@ void BarberShop::customer(const std::string &name) // producer
 
 void BarberShop::run()
 {
-    std::vector<std::string> barberNames{"Steve", "Virgilio"};
-    std::vector<std::string> customerNames{"John", "Greg", "Pete", "Peter", "Oliver", "James", "Cody", "Jeeves", "Connor", "Guprit"};
+    std::vector<std::string> names{"John", "Gregor", "Pete", "Peter", "Oliver", "James", "Cody", "Jeeves", "Connor", "Hugo", "Sam", "Herman"};
     std::vector<std::thread> barberThreads;
     std::vector<std::thread> customerThreads;
 
-    for (int i = 0; i < 1; ++i)
+    int numberOfBarbers = 1, numberOfCustomers = 20;
+
+    for (int i = 0; i < numberOfBarbers; ++i)
     {
-        barberThreads.emplace_back(std::thread(&BarberShop::barber, this, barberNames[rand() % barberNames.size()]));
+        barberThreads.emplace_back(std::thread(&BarberShop::barber, this, names[rand() % names.size()]));
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    for (int i = 0; i < 20; ++i)
+    for (int i = 0; i < numberOfCustomers; ++i)
     {
-        customerThreads.emplace_back(std::thread(&BarberShop::customer, this, customerNames[rand() % customerNames.size()]));
-        std::this_thread::sleep_for(std::chrono::seconds(rand() % 3));
+        customerThreads.emplace_back(std::thread(&BarberShop::customer, this, names[rand() % names.size()]));
+        std::this_thread::sleep_for(std::chrono::seconds((rand() % 7)+1));
     }
 
     open = false;

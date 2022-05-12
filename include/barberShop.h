@@ -13,7 +13,8 @@
 class BarberShop
 {
 private:
-    const int timeToCut = 5; // how long it takes the barber to cut someones hair
+    const int timeToCutMin = 5; // how long it takes the barber to cut someones hair
+    const int timeToCutMax = 15;
     const int numberOfSeats = 3;
     int freeBarbers = 0;
     bool open = true;
