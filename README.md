@@ -18,14 +18,8 @@ A multiple sleeping barbers problem has the additional complexity of coordinatin
 
 ## EXTRAS
 
-★
+★ Use minimum amount of global variable
 
-· Use minimum amount of global variable
+★★ Organize your code in to objects
 
-★★
-
-· Organise your code in to objects
-
-★★★
-
-· Have multiple barbers managing customers 
+★★★ Have multiple barbers managing customers

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <queue>
+#include <sstream>
 
 class BarberShop
 {
@@ -21,15 +22,19 @@ private:
     std::queue<std::string> customers; // int is the chair they are in e.g. chair 0,1,2,3,4
 
     std::mutex mu;
+    std::mutex outputMu;
     std::condition_variable waitingCustomers;
     std::condition_variable hadHairCut;
+
+    void print(std::stringstream &str);
+    void print(const std::string &str);
 
 public:
     BarberShop();
 
     void barber(const std::string &name);
     void customer(const std::string &name);
-    void run();
+    void run(const int &numberOfBarbers, const int &numberOfCustomers, std::vector<std::string> &names);
 };
 
 #endif

@@ -12,30 +12,33 @@ BarberShop::BarberShop()
 
 void BarberShop::barber(const std::string &name)
 {
+    std::stringstream stream;
     while (open || customers.size() != 0)
     {
-        std::unique_lock<std::mutex> lock(mu);
+        std::unique_lock<std::mutex> lock(mu); // engage lock
         if (customers.size() == 0)
         {
-            std::cout << "Barber " << name << " is having a nap " << std::endl;
+            print("Barber " + name + " is having a nap \n");
             freeBarbers++;
-            waitingCustomers.wait(lock);
-            std::cout << "Barber " << name << " has woken up " << std::endl;
+            waitingCustomers.wait(lock); // release lock and reengage 
+            print("Barber " + name + " has woken up \n");
             freeBarbers--;
         }
 
-        if (customers.size() == 0)
+        if (customers.size() == 0) // mainly here to remove a compiler warning
             continue;
 
         std::string customerName = customers.front();
-        std::cout << "Barber " << name << " takes customer " << customerName << " to the chair" << std::endl;
+        print("Barber " + name + " takes customer " + customerName + " to the chair\n");
+        stream.clear();
         customers.pop();
-        std::cout << "Barber " << name << " starts cutting hair " << std::endl;
+        print("Barber " + name + " starts cutting hair \n");
         lock.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((rand() % (timeToCutMax-timeToCutMin))+timeToCutMin));
+        std::this_thread::sleep_for(std::chrono::seconds((rand() % (timeToCutMax - timeToCutMin)) + timeToCutMin));
         lock.lock();
-        std::cout << "Barber " << name << " has finished cutting hair " << std::endl;
-        std::cout << customerName << " leaves" << std::endl;
+        stream << "Barber " << name << " has finished cutting hair" << std::endl;
+        stream << customerName << " leaves" << std::endl;
+        print(stream);
         hadHairCut.notify_one();
         lock.unlock();
     }
@@ -43,27 +46,24 @@ void BarberShop::barber(const std::string &name)
 
 void BarberShop::customer(const std::string &name) // producer
 {
-    std::unique_lock<std::mutex> lock(mu);
-    std::cout << "Customer " << name << " enters the barbers " << std::endl;
+    print("Customer " + name + " enters the barbers \n");
+    std::unique_lock<std::mutex> lock(mu); // engage lock
     if (customers.size() >= numberOfSeats)
     {
-        std::cout << " No free seats so customer " << name << " leaves " << std::endl;
-        return;
+        print("No free seats so customer " + name + " leaves\n ");
+        return; // release lock
     }
     customers.push(name);
     if (freeBarbers)
         waitingCustomers.notify_one(); // if there is a free barber notify one of them
     else
-        hadHairCut.wait(lock); // otherwise wait for a barber
+        hadHairCut.wait(lock); // otherwise wait for a barber release lock then engage
 }
 
-void BarberShop::run()
+void BarberShop::run(const int &numberOfBarbers, const int &numberOfCustomers, std::vector<std::string> &names)
 {
-    std::vector<std::string> names{"John", "Gregor", "Pete", "Peter", "Oliver", "James", "Cody", "Jeeves", "Connor", "Hugo", "Sam", "Herman"};
     std::vector<std::thread> barberThreads;
     std::vector<std::thread> customerThreads;
-
-    int numberOfBarbers = 1, numberOfCustomers = 20;
 
     for (int i = 0; i < numberOfBarbers; ++i)
     {
@@ -75,7 +75,7 @@ void BarberShop::run()
     for (int i = 0; i < numberOfCustomers; ++i)
     {
         customerThreads.emplace_back(std::thread(&BarberShop::customer, this, names[rand() % names.size()]));
-        std::this_thread::sleep_for(std::chrono::seconds((rand() % 7)+1));
+        std::this_thread::sleep_for(std::chrono::seconds((rand() % 7) + 1));
     }
 
     open = false;
@@ -84,4 +84,21 @@ void BarberShop::run()
 
     for (auto &i : customerThreads)
         i.join();
+}
+
+void BarberShop::print(std::stringstream &str)
+{
+    std::unique_lock<std::mutex> lock(outputMu);
+    std::string tmpStr = str.str();
+    std::cout << tmpStr;
+
+    // clean out the stream
+    str.clear(); // clear any bits set
+    str.str(std::string("")); // set to empty
+}
+
+void BarberShop::print(const std::string &str)
+{
+    std::unique_lock<std::mutex> lock(outputMu);
+    std::cout << str;
 }
