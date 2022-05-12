@@ -13,6 +13,7 @@ BarberShop::BarberShop()
 void BarberShop::barber(const std::string &name)
 {
     std::stringstream stream;
+    totalBarbers++;
     while (open || customers.size() != 0)
     {
         std::unique_lock<std::mutex> lock(mu); // engage lock
@@ -20,7 +21,7 @@ void BarberShop::barber(const std::string &name)
         {
             print("Barber " + name + " is having a nap \n");
             freeBarbers++;
-            waitingCustomers.wait(lock); // release lock and reengage 
+            waitingCustomers.wait(lock); // release lock and reengage
             print("Barber " + name + " has woken up \n");
             freeBarbers--;
         }
@@ -38,10 +39,14 @@ void BarberShop::barber(const std::string &name)
         lock.lock();
         stream << "Barber " << name << " has finished cutting hair" << std::endl;
         stream << customerName << " leaves" << std::endl;
+        ++serviced;
         print(stream);
+        // display current state of the queue
+        lock = displayStatus(lock);
         hadHairCut.notify_one();
         lock.unlock();
     }
+    totalBarbers--;
 }
 
 void BarberShop::customer(const std::string &name) // producer
@@ -51,6 +56,7 @@ void BarberShop::customer(const std::string &name) // producer
     if (customers.size() >= numberOfSeats)
     {
         print("No free seats so customer " + name + " leaves\n ");
+        ++rejected;
         return; // release lock
     }
     customers.push(name);
@@ -93,7 +99,7 @@ void BarberShop::print(std::stringstream &str)
     std::cout << tmpStr;
 
     // clean out the stream
-    str.clear(); // clear any bits set
+    str.clear();              // clear any bits set
     str.str(std::string("")); // set to empty
 }
 
@@ -101,4 +107,17 @@ void BarberShop::print(const std::string &str)
 {
     std::unique_lock<std::mutex> lock(outputMu);
     std::cout << str;
+}
+
+std::unique_lock<std::mutex> BarberShop::displayStatus(std::unique_lock<std::mutex> &lock)
+{
+    std::stringstream str;
+    str << "---------------------------------------------------------" << std::endl
+        << totalBarbers << " Barbers are working " << std::endl
+        << customers.size() << " Customers are waiting " << std::endl
+        << serviced << " Customers have been serviced " << std::endl
+        << rejected << " Customers have been rejected " << std::endl
+        << "---------------------------------------------------------" << std::endl;
+    print(str);
+    return move(lock);
 }
