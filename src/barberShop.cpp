@@ -8,6 +8,7 @@ BarberShop::BarberShop()
         srand(time(NULL));
         seeded = true;
     }
+    seats = std::vector<std::weak_ptr<Customer>>(NUMBER_OF_SEATS);
 }
 
 void BarberShop::barber(const std::string &name)
@@ -29,13 +30,18 @@ void BarberShop::barber(const std::string &name)
         if (customers.size() == 0) // mainly here to remove a compiler warning
             continue;
 
-        std::string customerName = customers.front();
+        std::shared_ptr<Customer> customer = customers.front();
+        std::string customerName = customer->getName();
         print("Barber " + name + " takes customer " + customerName + " to the chair\n");
         stream.clear();
         customers.pop();
+
+        // need to reset weak ptr seat
+        seats[customer->getSeat()].reset();
+
         print("Barber " + name + " starts cutting hair \n");
         lock.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((rand() % (timeToCutMax - timeToCutMin)) + timeToCutMin));
+        std::this_thread::sleep_for(std::chrono::seconds((rand() % (TIME_TO_CUT_MAX - TIME_TO_CUT_MIN)) + TIME_TO_CUT_MIN));
         lock.lock();
         stream << "Barber " << name << " has finished cutting hair" << std::endl;
         stream << customerName << " leaves" << std::endl;
@@ -53,13 +59,17 @@ void BarberShop::customer(const std::string &name) // producer
 {
     print("Customer " + name + " enters the barbers \n");
     std::unique_lock<std::mutex> lock(mu); // engage lock
-    if (customers.size() >= numberOfSeats)
+    if (customers.size() >= NUMBER_OF_SEATS)
     {
         print("No free seats so customer " + name + " leaves\n ");
         ++rejected;
         return; // release lock
     }
-    customers.push(name);
+    int seat;
+    lock = getFreeSeat(lock, seat);
+    std::shared_ptr<Customer> customer = std::make_shared<Customer>(name, seat);
+    seats[seat] = customer;
+    customers.push(customer);
     if (freeBarbers)
         waitingCustomers.notify_one(); // if there is a free barber notify one of them
     else
@@ -118,6 +128,30 @@ std::unique_lock<std::mutex> BarberShop::displayStatus(std::unique_lock<std::mut
         << serviced << " Customers have been serviced " << std::endl
         << rejected << " Customers have been rejected " << std::endl
         << "---------------------------------------------------------" << std::endl;
+    // make some sort of representation of who is in what seat
+    str << "Waiting Room: " << std::endl << " ";
+    for (int i = 0; i < NUMBER_OF_SEATS; ++i)
+    {
+        std::shared_ptr<Customer> customer;
+        std::string customerChar = "__";
+        if (customer = seats[i].lock())
+        {
+            customerChar = (customer->getName()).substr(0, 2);
+        }
+        str << " " << customerChar;
+    }
+    str << std::endl
+        << "---------------------------------------------------------" << std::endl;
     print(str);
     return move(lock);
+}
+
+std::unique_lock<std::mutex> BarberShop::getFreeSeat(std::unique_lock<std::mutex> &lock, int &freeSeat) const
+{
+    for (freeSeat = 0; freeSeat < NUMBER_OF_SEATS; ++freeSeat)
+    {
+        if (seats[freeSeat].expired())
+            return std::move(lock);
+    }
+    return std::move(lock); // this is an error
 }

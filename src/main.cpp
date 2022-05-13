@@ -3,7 +3,7 @@
 int main()
 {
     BarberShop shop;
-    int numberOfBarbers = 1, numberOfCustomers = 14;
+    int numberOfBarbers = 1, numberOfCustomers = 30;
     std::vector<std::string> names{
         "John",
         "Gregor",
@@ -16,7 +16,8 @@ int main()
         "Connor",
         "Hugo",
         "Sam",
-        "Herman", "Liam",
+        "Herman",
+        "Liam",
         "Noah",
         "Oliver",
         "Elijah",
@@ -30,7 +31,6 @@ int main()
         "Levi",
         "Alexander",
         "Jackson",
-        "Mateo",
         "Daniel",
         "Michael",
         "Mason",
@@ -41,7 +41,6 @@ int main()
         "Samuel",
         "Jacob",
         "Asher",
-        "Aiden",
         "John",
         "Joseph",
         "Wyatt",
