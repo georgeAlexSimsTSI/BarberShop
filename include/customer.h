@@ -3,11 +3,14 @@
 
 #include <string>
 
+/**
+ * @brief class representing a customer
+ */
 class Customer
 {
 private:
-    std::string name;
-    int seat;
+    std::string name; // customers name
+    int seat;         // which seat is the customer waiting in
 
 public:
     Customer();
