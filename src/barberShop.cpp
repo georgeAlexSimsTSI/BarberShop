@@ -129,7 +129,8 @@ std::unique_lock<std::mutex> BarberShop::displayStatus(std::unique_lock<std::mut
         << rejected << " Customers have been rejected " << std::endl
         << "---------------------------------------------------------" << std::endl;
     // make some sort of representation of who is in what seat
-    str << "Waiting Room: " << std::endl << " ";
+    str << "Waiting Room: " << std::endl
+        << " ";
     for (int i = 0; i < NUMBER_OF_SEATS; ++i)
     {
         std::shared_ptr<Customer> customer;

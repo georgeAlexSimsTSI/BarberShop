@@ -10,14 +10,14 @@ private:
     int seat;
 
 public:
-    Customer() : Customer("John", 0) {}
-    Customer(const std::string &name, const int &seat) : name(name), seat(seat) {}
+    Customer();
+    Customer(const std::string &name, const int &seat);
 
-    std::string getName() const { return this->name; }
-    int getSeat() const { return this->seat; }
+    std::string getName() const;
+    int getSeat() const;
 
-    void setName(const std::string &name) { this->name = name; }
-    void setSeat(const int &seat) { this->seat = seat; }
+    void setName(const std::string &name);
+    void setSeat(const int &seat);
 };
 
 #endif

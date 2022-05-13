@@ -3,7 +3,7 @@
 int main()
 {
     BarberShop shop;
-    int numberOfBarbers = 1, numberOfCustomers = 30;
+    int numberOfBarbers = 2, numberOfCustomers = 30;
     std::vector<std::string> names{
         "John",
         "Gregor",
